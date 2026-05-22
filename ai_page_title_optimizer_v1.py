@@ -11,12 +11,6 @@ st.set_page_config(page_title="SEO Page Title Optimizer", page_icon="🚀", layo
 st.title("🚀 SEO Page Title Optimizer")
 st.write("Upload je huidige paginatitels en Google Search Console data om AI-geoptimaliseerde titels te genereren.")
 
-# --- PAGINA CONFIGURATIE ---
-st.set_page_config(page_title="SEO Page Title Optimizer", page_icon="🚀", layout="wide")
-
-st.title("🚀 SEO Page Title Optimizer")
-st.write("Upload je huidige paginatitels en Google Search Console data om AI-geoptimaliseerde titels te genereren.")
-
 # === NIEUW: INFORMATIEVE HANDLEIDING (UITKLAPBAAR) ===
 with st.expander("📖 Hoe werkt deze tool? (Klik om te lezen)", expanded=False):
     st.markdown("""
