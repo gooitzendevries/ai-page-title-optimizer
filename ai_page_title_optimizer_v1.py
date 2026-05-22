@@ -17,8 +17,8 @@ with st.expander("📖 Hoe werkt deze tool? (Klik om te lezen)", expanded=False)
     Deze applicatie combineert de huidige content van je website met de werkelijke vertoningsdata uit Google Search Console. De AI (GPT-4o-mini) analyseert deze input om conversieverhogende en SEO-vriendelijke titels te schrijven.
     
     ### 🛠️ In 4 stappen naar betere titels:
-    1. **Instellingen invullen:** Vul in de sidebar (links) je OpenAI API Key en je nieuwe merknaam in. Kies ook direct je favoriete scheidingsteken (bijv. | of -).
-    2. **Upload Paginatitels:** Sleep je website-export (bijv. uit Screaming Frog) in het linkervak. Zorg dat de kolommen Address, Title 1, H1-1 en Page Content erin staan. Optioneel kun je hier Target Keyword en Search Volume aan toevoegen voor extra strategische sturing.
+    1. **Instellingen invullen:** Vul in de sidebar (links) je OpenAI API Key en de merknaam van de website in. Kies ook direct je favoriete scheidingsteken (bijv. | of -).
+    2. **Upload Paginatitels:** Sleep je website-export (bijv. uit Screaming Frog) in het linkervak. Zorg dat de kolommen Address, Title 1, H1-1 en Page Content erin staan. Optioneel kun je hier Target Keyword and Search Volume aan toevoegen voor extra strategische sturing.
     3. **Upload GSC Data:** Sleep je zoekwoord-export uit Google Search Console (bijv. via de Search Analytics for Sheets extensie) in het rechtervak. Dit bestand heeft de kolommen Page, Query en Impressions nodig.
     4. **Optimaliseer:** Klik op de rode knop. De app filtert automatisch URL-parameters (?) and non-indexable pagina's eruit om onnodige AI-kosten te voorkomen.
     
@@ -34,7 +34,7 @@ with st.expander("📖 Hoe werkt deze tool? (Klik om te lezen)", expanded=False)
 # --- SIDEBAR: INSTELLINGEN ---
 st.sidebar.header("⚙️ Instellingen")
 openai_key = st.sidebar.text_input("OpenAI API Key", type="password", help="Vind je key op platform.openai.com")
-nieuwe_merknaam = st.sidebar.text_input("Nieuwe Merknaam", value="MijnMerknaam", help="De merknaam die achteraan the titel moet komen")
+merknaam = st.sidebar.text_input("Merknaam / Bedrijfsnaam", value="Bedrijfsnaam", help="De merknaam van de organisatie of website die achteraan de titel moet komen")
 
 # Keuzemenu voor het scheidingsteken in de sidebar
 scheidingsteken = st.sidebar.radio(
@@ -74,7 +74,7 @@ def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
         
     page_content_snippet = page_content[:3000] if page_content and page_content != 'nan' else "Geen pagina-inhoud beschikbaar."
     
-    # Exacte match op basis van de originele URL (nu o.b.v. impressies)
+    # Exacte match op basis van de originele URL
     top_queries = kw_dict.get(url, [])
     
     kw1 = top_queries[0] if len(top_queries) > 0 else ""
@@ -95,7 +95,7 @@ def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
     Je bent een ervaren SEO-expert. Optimaliseer de Page Title (meta title) voor de volgende pagina op basis van de data and de pagina-inhoud.
     
     BELANGRIJKE CONTEXT:
-    - De NIEUWE merknaam is exact: {nieuwe_merknaam}.
+    - De merknaam van de website is exact: {merknaam}.
     
     DATA & CONTEXT:
     - URL van de pagina: {url}
@@ -108,11 +108,11 @@ def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
     RANDVOORWAARDEN:
     1. De nieuwe titel MOET extreem relevant zijn voor de intentie van de pagina.
     2. {prioriteit_regel}
-    3. Eindig de titel ALTIJD met de merknaam, exact als volgt geschreven: `{scheidingsteken} {nieuwe_merknaam}`.
+    3. Eindig de titel ALTIJD met de merknaam, exact als volgt geschreven: `{scheidingsteken} {merknaam}`.
     4. De TOTALE titel lengte MOET strikt tussen de 40 en 60 karakters lang zijn (absoluut maximaal 60 karakters).
     5. Output ALLEEN de nieuwe titel. Geen inleiding, geen uitleg, geen aanhalingstekens eromheen.
     6. Voorkom overmatig gebruik van hoofdletters. 
-    7. Alleen het allereerste woord van de paginatitel mag met een hoofdletter beginnen. Alle tussenliggende woorden moeten volledig in kleine letters (lowercase), tenzij het een officiële eigennaam betreft. Behoud voor de merknaam aan het einde wél de exacte schrijwijze: {nieuwe_merknaam}.
+    7. Alleen het allereerste woord van de paginatitel mag met een hoofdletter beginnen. Alle tussenliggende woorden moeten volledig in kleine letters (lowercase), tenzij het een officiële eigennaam betreft. Behoud voor de merknaam aan het einde wél de exacte schrijfwijze: {merknaam}.
     """
     
     advies_titel = "Fout bij genereren"
@@ -130,7 +130,7 @@ def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
             )
             advies_titel = response.choices[0].message.content.strip()
             
-            # Output Schoonmaken (Sterretjes, aanhalingstekens en AI-voorvoegsels slopen)
+            # Output Schoonmaken
             advies_titel = advies_titel.replace('"', '').replace("'", "").replace("**", "").replace("*", "")
             advies_titel = re.sub(r'^(hier is je titel:|nieuwe titel:|titel advies:|advies titel:)\s*', '', advies_titel, flags=re.IGNORECASE)
             break 
