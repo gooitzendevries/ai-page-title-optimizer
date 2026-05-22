@@ -24,6 +24,8 @@ Dit bestand bevat de pagina's die je wilt optimaliseren (bijvoorbeeld een export
 | `Title 1` | Tekst | De huidige meta-titel van de pagina. |
 | `H1-1` | Tekst | De huidige primaire H1-kop van de pagina. |
 | `Page Content` | Tekst | De (gescrapte) kerninhoud of introductie van de pagina. |
+| `Target Keyword` | Tekst | {optioneel} De focus keyword van de landingspagina die de intent/hoofdthema vertegenwoordig |
+| `Search volume` | Tekst | {optioneel} Het zoekvolume van het focus keyword (intent / hoofdthema) |
 
 Let op: zorg dat de exacte benamingen zoals hierboven vermeld terugkomen in het .csv bestand. De Page Content kun je m.b.v. custom extract via bijvoorbeeld ScreamingFrog extraheren. Het is essentieel dat de custom extract 'Page Content' heet. 
 
