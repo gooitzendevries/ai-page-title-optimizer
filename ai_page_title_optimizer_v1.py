@@ -16,11 +16,19 @@ st.sidebar.header("⚙️ Instellingen")
 openai_key = st.sidebar.text_input("OpenAI API Key", type="password", help="Vind je key op platform.openai.com")
 nieuwe_merknaam = st.sidebar.text_input("Nieuwe Merknaam", value="MijnMerknaam", help="De merknaam die achteraan de titel moet komen")
 
+# Optie 2: Dynamische selectie van het scheidingsteken in de sidebar
+scheidingsteken = st.sidebar.radio(
+    "Kies scheidingsteken voor merknaam", 
+    ["|", "-", "•"], 
+    index=0, 
+    help="Dit teken wordt tussen de paginatitel en de merknaam geplaatst"
+)
+
 # --- DE AI VERWERKINGSFUNCTIE ---
-def verwerk_pagina(row_data, kw_dict, client):
+def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
     index, row = row_data
     
-    # Punt 3: Altijd forceren naar strings om type-fouten te voorkomen
+    # Altijd forceren naar strings om type-fouten te voorkomen
     url = str(row.get('address', '')).strip()
     current_title = str(row.get('title 1', '')).strip()
     current_h1 = str(row.get('h1-1', '')).strip()
@@ -55,7 +63,7 @@ def verwerk_pagina(row_data, kw_dict, client):
     RANDVOORWAARDEN:
     1. De nieuwe titel MOET extreem relevant zijn voor de intentie van de pagina.
     2. Verwerk het belangrijkste zoekwoord zo ver mogelijk vooraan in de titel.
-    3. Eindig de titel ALTIJD met de merknaam, exact als volgt geschreven: `| {nieuwe_merknaam}`.
+    3. Eindig de titel ALTIJD met de merknaam, exact als volgt geschreven: `{scheidingsteken} {nieuwe_merknaam}`.
     4. De TOTALE titel lengte MOET strikt tussen de 40 en 60 karakters lang zijn (absoluut maximaal 60 karakters).
     5. Output ALLEEN de nieuwe titel. Geen inleiding, geen uitleg, geen aanhalingstekens eromheen.
     6. Voorkom overmatig gebruik van hoofdletters. 
@@ -70,7 +78,7 @@ def verwerk_pagina(row_data, kw_dict, client):
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Je bent een accurate SEO-copywriter die zich strikt aan karakterlimieten en hoofdletter-restricties houdt."},
+                    {"role": "system", "content": "Je bent een accurate SEO-copywriter die zich strikt aan karakterlimieten, scheidingstekens en hoofdletter-restricties houdt."},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.6
@@ -96,7 +104,6 @@ if file_titles and file_data:
         st.warning("⚠️ Vul eerst je OpenAI API Key in de sidebar in.")
     else:
         if st.button("🚀 Start Optimalisatie", type="primary"):
-            # Suggestie 2: .strip() toegevoegd om eventuele gekopieerde spaties op te vangen
             client = OpenAI(api_key=openai_key.strip())
             
             with st.status("Data aan het verwerken...", expanded=True) as status:
@@ -159,11 +166,11 @@ if file_titles and file_data:
                 st.write(f"OpenAI aanroepen voor {len(df_titles)} pagina's...")
                 rows_to_process = list(df_titles.iterrows())
                 
-                # Parallel verwerken
+                # Parallel verwerken (scheidingsteken wordt nu netjes meegegeven aan de functie)
                 results = []
                 with ThreadPoolExecutor(max_workers=5) as executor:
                     progress_bar = st.progress(0)
-                    futures = [executor.submit(verwerk_pagina, row, kw_dict, client) for row in rows_to_process]
+                    futures = [executor.submit(verwerk_pagina, row, kw_dict, client, scheidingsteken) for row in rows_to_process]
                     
                     for i, future in enumerate(futures):
                         results.append(future.result())
