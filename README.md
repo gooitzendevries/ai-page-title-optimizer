@@ -25,7 +25,7 @@ Dit bestand bevat de pagina's die je wilt optimaliseren (bijvoorbeeld een export
 | `H1-1` | Tekst | De huidige primaire H1-kop van de pagina. |
 | `Page Content` | Tekst | De (gescrapte) kerninhoud of introductie van de pagina. |
 
-Let op: zorg dat de exacte benamingen zoals hierboven vermeld terugkomen in het .csv bestand.
+Let op: zorg dat de exacte benamingen zoals hierboven vermeld terugkomen in het .csv bestand. De Page Content kun je m.b.v. custom extract via bijvoorbeeld ScreamingFrog extraheren. Het is essentieel dat de custom extract 'Page Content' heet. 
 
 ### 2. Google Search Console Data CSV
 Dit bestand bevat de zoekwoordprestaties op paginaniveau (export uit GSC).
