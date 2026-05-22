@@ -1,4 +1,4 @@
-# 🚀 SEO Page Title Optimizer
+# 🚀 AI Page Title Optimizer
 
 De AI Page Title Optimizer tool helpt marketing specialisten en website-eigenaren om in bulk paginatitels (meta titles) te optimaliseren op basis van daadwerkelijke prestatiedata uit Google Search Console (GSC) en de gescrapte pagina-inhoud.
 
