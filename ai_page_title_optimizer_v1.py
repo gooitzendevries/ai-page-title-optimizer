@@ -33,7 +33,7 @@ with col1:
 
 with col2:
     st.subheader("2. Google Search Console Data")
-    file_data = st.file_uploader("Upload CSV met kolommen: Page, Query, Impressions", type=["csv"])
+    file_data = st.file_uploader("Upload CSV met kolommen: Page, Query, Impressions                                                               ", type=["csv"])
 
 # --- DE AI VERWERKINGSFUNCTIE ---
 def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
