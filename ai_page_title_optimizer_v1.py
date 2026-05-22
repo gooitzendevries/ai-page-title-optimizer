@@ -11,30 +11,6 @@ st.set_page_config(page_title="SEO Page Title Optimizer", page_icon="🚀", layo
 st.title("🚀 SEO Page Title Optimizer")
 st.write("Upload je huidige paginatitels en Google Search Console data om AI-geoptimaliseerde titels te genereren.")
 
-# === NIEUW: INFORMATIEVE HANDLEIDING (UITKLAPBAAR) ===
-with st.expander("📖 Hoe werkt deze tool? (Klik om te lezen)", expanded=False):
-    st.markdown("""
-    Deze applicatie combineert de huidige content van je website met de werkelijke prestatiedata uit Google Search Console. De AI (GPT-4o-mini) analyseert deze input om conversieverhogende en SEO-vriendelijke titels te schrijven.
-    
-    ### 🛠️ In 4 stappen naar betere titels:
-    1. **Instellingen invullen:** Vul in de sidebar (links) je OpenAI API Key en je merknaam in. Kies ook direct je favoriete scheidingsteken (bijv. `|` of `-`).
-    2. **Upload Paginatitels:** Sleep je website-export (bijv. uit Screaming Frog) in het linkervak. Zorg dat de kolommen `Address`, `Title 1`, `H1-1` en `Page Content` (je custom content-scrape) erin staan.
-    3. **Upload GSC Data:** Sleep je zoekwoord-export uit Google Search Console in het rechtervak (Search Analytics extensie voor Google Sheets). Dit bestand heeft de kolommen `Page`, `Query` en `Clicks` nodig.
-    4. **Optimaliseer:** Klik op de rode knop. De app filtert automatisch foutieve pagina's, URL-parameters (`?`) en non-indexable pagina's eruit om onnodige AI-kosten te voorkomen.
-    
-    ### 📥 Wat krijg je terug?
-    Na de analyse kun je een verrijkt CSV-bestand downloaden. Je behoudt al je originele kolommen, aangevuld met:
-    * **Title advies:** Je gloednieuwe, AI-geoptimaliseerde paginatitel.
-    * **Title Length:** De exacte karakterlengte (gegarandeerd tussen de 40 en 60 tekens).
-    * **Keyword 1, 2, 3:** De top-3 best presterende zoekwoorden (o.b.v. Google Search Console data) die de AI als context heeft meegekregen.
-    
-    _Veiligheid: Je API Key en data worden uitsluitend gebruikt om met OpenAI te communiceren en worden nergens opgeslagen._
-    """)
-# =====================================================
-
-# --- SIDEBAR: INSTELLINGEN ---
-# ... (rest van je code blijft exact hetzelfde)
-
 # --- SIDEBAR: INSTELLINGEN ---
 st.sidebar.header("⚙️ Instellingen")
 openai_key = st.sidebar.text_input("OpenAI API Key", type="password", help="Vind je key op platform.openai.com")
@@ -53,11 +29,11 @@ col1, col2 = st.columns(2)
 
 with col1:
     st.subheader("1. Huidige Paginatitels")
-    file_titles = st.file_uploader("Upload CSV met kolommen: Address, Title 1, H1-1, Page Content", type=["csv"])
+    file_titles = st.file_uploader("Upload CSV met kolommen: Address, Title 1, H1-1, Page Content (Optioneel: Target Keyword, Search Volume)", type=["csv"])
 
 with col2:
     st.subheader("2. Google Search Console Data")
-    file_data = st.file_uploader("Upload CSV met kolommen: Page, Query, Clicks", type=["csv"])
+    file_data = st.file_uploader("Upload CSV met kolommen: Page, Query, Impressions", type=["csv"])
 
 # --- DE AI VERWERKINGSFUNCTIE ---
 def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
@@ -69,12 +45,16 @@ def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
     current_h1 = str(row.get('h1-1', '')).strip()
     page_content = str(row.get('page content', '')).strip()
     
+    # Optionele strategische kolommen uitlezen
+    target_keyword = str(row.get('target keyword', '')).strip()
+    search_volume = str(row.get('search volume', '')).strip()
+    
     if not url or url == 'nan':
         return ["", 0, "", "", ""]
         
     page_content_snippet = page_content[:3000] if page_content and page_content != 'nan' else "Geen pagina-inhoud beschikbaar."
     
-    # Exacte match op basis van de originele URL
+    # Exacte match op basis van de originele URL (nu o.b.v. impressies)
     top_queries = kw_dict.get(url, [])
     
     kw1 = top_queries[0] if len(top_queries) > 0 else ""
@@ -82,6 +62,15 @@ def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
     kw3 = top_queries[2] if len(top_queries) > 2 else ""
     keywords_context = ", ".join(top_queries) if top_queries else "Geen zoekwoorddata bekend."
     
+    # Dynamische weging bepalen voor de prompt
+    if target_keyword and target_keyword.lower() != 'nan':
+        volume_text = f" (Zoekvolume: {search_volume})" if search_volume and search_volume.lower() != 'nan' else ""
+        strategische_context = f"- STRATEGISCH TARGET KEYWORD (ABSOLUTE PRIORITEIT): {target_keyword}{volume_text}"
+        prioriteit_regel = "GEEF ABSOLUTE PRIORITEIT aan het 'STRATEGISCH TARGET KEYWORD'. Dit specifieke zoekwoord moet zo ver mogelijk vooraan in de nieuwe titel worden geplaatst. Gebruik de overige Search Console zoekwoorden puur als aanvullende inspiratie of secundaire context."
+    else:
+        strategische_context = "- Strategisch Target Keyword: Niet opgegeven door gebruiker."
+        prioriteit_regel = "Verwerk het belangrijkste zoekwoord uit de Google Search Console data (top-impressies) zo ver mogelijk vooraan in de titel."
+
     prompt = f"""
     Je bent een ervaren SEO-expert. Optimaliseer de Page Title (meta title) voor de volgende pagina op basis van de data and de pagina-inhoud.
     
@@ -92,17 +81,18 @@ def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
     - URL van de pagina: {url}
     - Huidige Titel: {current_title}
     - Huidige H1-tag: {current_h1}
-    - Top 3 best presterende opgeschoonde zoekwoorden: {keywords_context}
+    {strategische_context}
+    - Top 3 zoekwoorden met meeste impressies (GSC): {keywords_context}
     - Kern van de pagina-inhoud: {page_content_snippet}
     
     RANDVOORWAARDEN:
     1. De nieuwe titel MOET extreem relevant zijn voor de intentie van de pagina.
-    2. Verwerk het belangrijkste zoekwoord zo ver mogelijk vooraan in de titel.
-    3. Eindig de titel ALTIJD met de merknaam, exact als volgt geschreven: '{scheidingsteken} {nieuwe_merknaam}'.
+    2. {prioriteit_regel}
+    3. Eindig de titel ALTIJD met de merknaam, exact als volgt geschreven: `{scheidingsteken} {nieuwe_merknaam}`.
     4. De TOTALE titel lengte MOET strikt tussen de 40 en 60 karakters lang zijn (absoluut maximaal 60 karakters).
     5. Output ALLEEN de nieuwe titel. Geen inleiding, geen uitleg, geen aanhalingstekens eromheen.
     6. Voorkom overmatig gebruik van hoofdletters. 
-    7. Alleen het allereerste woord van de paginatitel mag met een hoofdletter beginnen. Alle tussenliggende woorden moeten volledig in kleine letters (lowercase), tenzij het een officiële eigennaam betreft. Behoud voor de merknaam aan het einde wél de exacte schrijfwijze: {nieuwe_merknaam}.
+    7. Alleen het allereerste woord van de paginatitel mag met een hoofdletter beginnen. Alle tussenliggende woorden moeten volledig in kleine letters (lowercase), tenzij het een officiële eigennaam betreft. Behoud voor de merknaam aan het einde wél de exacte schrijwijze: {nieuwe_merknaam}.
     """
     
     advies_titel = "Fout bij genereren"
@@ -113,10 +103,10 @@ def verwerk_pagina(row_data, kw_dict, client, scheidingsteken):
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=[
-                    {"role": "system", "content": "Je bent een accurate SEO-copywriter die zich strikt aan karakterlimieten, scheidingstekens en hoofdletter-restricties houdt."},
+                    {"role": "system", "content": "Je bent een accurate SEO-copywriter die zich strikt aan karakterlimieten, scheidingstekens, prioriteiten en hoofdletter-restricties houdt."},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.6
+                temperature=0.2 # Verlaagd naar 0.2 voor striktere naleving van de regels
             )
             advies_titel = response.choices[0].message.content.strip()
             
@@ -155,7 +145,7 @@ if file_titles and file_data:
                 df_data.columns = df_data.columns.str.lower().str.strip()
                 
                 verplichte_titels = ['address', 'title 1', 'h1-1', 'page content']
-                verplichte_data = ['page', 'query', 'clicks']
+                verplichte_data = ['page', 'query', 'impressions'] # Verplichte kolom aangepast naar impressions
                 
                 gemiste_titels = [col for col in verplichte_titels if col not in df_titles.columns]
                 gemiste_data = [col for col in verplichte_data if col not in df_data.columns]
@@ -190,11 +180,11 @@ if file_titles and file_data:
                     st.error("❌ Geen bruikbare pagina's overgebleven na het filteren van parameters en non-indexable URL's.")
                     st.stop()
                 
-                st.write("GSC-data koppelen...")
-                df_data['clicks'] = pd.to_numeric(df_data['clicks'], errors='coerce').fillna(0)
+                st.write("GSC-data koppelen op basis van impressies...")
+                df_data['impressions'] = pd.to_numeric(df_data['impressions'], errors='coerce').fillna(0)
                 
-                # Sorteer en groepeer direct op de exacte 'page' kolom
-                df_data_sorted = df_data.sort_values(by=['page', 'clicks'], ascending=[True, False])
+                # Sorteer en groepeer direct op de 'page' kolom op basis van IMPRESSIES (hoog naar laag)
+                df_data_sorted = df_data.sort_values(by=['page', 'impressions'], ascending=[True, False])
                 df_top3 = df_data_sorted.groupby('page').head(3)
                 kw_dict = df_top3.groupby('page')['query'].apply(list).to_dict()
                 
@@ -216,7 +206,7 @@ if file_titles and file_data:
             # --- RESULTAAT TONEN & DOWNLOADEN ---
             st.success("🔥 Klaar! De titels zijn succesvol gegenereerd.")
             
-            df_results = pd.DataFrame(results, columns=["Title advies", "Title Length", "Keyword 1", "Keyword 2", "Keyword 3"])
+            df_results = pd.DataFrame(results, columns=["Title advies", "Title Length", "Top Keyword 1 (GSC)", "Top Keyword 2 (GSC)", "Top Keyword 3 (GSC)"])
             df_final = pd.concat([df_titles.reset_index(drop=True), df_results], axis=1)
             
             st.subheader("👀 Preview van de resultaten (Eerste 10 rijen)")
