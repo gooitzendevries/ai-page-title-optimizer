@@ -11,6 +11,36 @@ st.set_page_config(page_title="SEO Page Title Optimizer", page_icon="🚀", layo
 st.title("🚀 SEO Page Title Optimizer")
 st.write("Upload je huidige paginatitels en Google Search Console data om AI-geoptimaliseerde titels te genereren.")
 
+# --- PAGINA CONFIGURATIE ---
+st.set_page_config(page_title="SEO Page Title Optimizer", page_icon="🚀", layout="wide")
+
+st.title("🚀 SEO Page Title Optimizer")
+st.write("Upload je huidige paginatitels en Google Search Console data om AI-geoptimaliseerde titels te genereren.")
+
+# === NIEUW: INFORMATIEVE HANDLEIDING (UITKLAPBAAR) ===
+with st.expander("📖 Hoe werkt deze tool? (Klik om te lezen)", expanded=False):
+    st.markdown("""
+    Deze applicatie combineert de huidige content van je website met de werkelijke prestatiedata uit Google Search Console. De AI (GPT-4o-mini) analyseert deze input om conversieverhogende en SEO-vriendelijke titels te schrijven.
+    
+    ### 🛠️ In 4 stappen naar betere titels:
+    1. **Instellingen invullen:** Vul in de sidebar (links) je OpenAI API Key en je nieuwe merknaam in. Kies ook direct je favoriete scheidingsteken (bijv. `|` of `-`).
+    2. **Upload Paginatitels:** Sleep je website-export (bijv. uit Screaming Frog) in het linkervak. Zorg dat de kolommen `Address`, `Title 1`, `H1-1` en `Page Content` (je custom content-scrape) erin staan.
+    3. **Upload GSC Data:** Sleep je zoekwoord-export uit Google Search Console in het rechtervak. Dit bestand heeft de kolommen `Page`, `Query` en `Clicks` nodig.
+    4. **Optimaliseer:** Klik op de rode knop. De app filtert automatisch foutieve pagina's, URL-parameters (`?`) en non-indexable pagina's eruit om onnodige AI-kosten te voorkomen.
+    
+    ### 📥 Wat krijg je terug?
+    Na de analyse kun je een verrijkt CSV-bestand downloaden. Je behoudt al je originele kolommen, aangevuld met:
+    * **Title advies:** Je gloednieuwe, AI-geoptimaliseerde paginatitel.
+    * **Title Length:** De exacte karakterlengte (gegarandeerd tussen de 40 en 60 tekens).
+    * **Keyword 1, 2, 3:** De top-3 best presterende zoekwoorden die de AI als context heeft meegekregen.
+    
+    _Veiligheid: Je API Key en data worden uitsluitend gebruikt om met OpenAI te communiceren en worden nergens opgeslagen._
+    """)
+# =====================================================
+
+# --- SIDEBAR: INSTELLINGEN ---
+# ... (rest van je code blijft exact hetzelfde)
+
 # --- SIDEBAR: INSTELLINGEN ---
 st.sidebar.header("⚙️ Instellingen")
 openai_key = st.sidebar.text_input("OpenAI API Key", type="password", help="Vind je key op platform.openai.com")
