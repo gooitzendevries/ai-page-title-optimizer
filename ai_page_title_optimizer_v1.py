@@ -16,17 +16,6 @@ st.sidebar.header("⚙️ Instellingen")
 openai_key = st.sidebar.text_input("OpenAI API Key", type="password", help="Vind je key op platform.openai.com")
 nieuwe_merknaam = st.sidebar.text_input("Nieuwe Merknaam", value="MijnMerknaam", help="De merknaam die achteraan de titel moet komen")
 
-# --- HOOFDPAGINA: FILE UPLOADERS ---
-col1, col2 = st.columns(2)
-
-with col1:
-    st.subheader("1. Huidige Paginatitels")
-    file_titles = st.file_uploader("Upload CSV met kolommen: Address, Title 1, H1-1, Page Content", type=["csv"])
-
-with col2:
-    st.subheader("2. Google Search Console Data")
-    file_data = st.file_uploader("Upload CSV met kolommen: Page, Query, Clicks", type=["csv"])
-
 # --- DE AI VERWERKINGSFUNCTIE ---
 def verwerk_pagina(row_data, kw_dict, client):
     index, row = row_data
@@ -41,6 +30,8 @@ def verwerk_pagina(row_data, kw_dict, client):
         return ["", 0, "", "", ""]
         
     page_content_snippet = page_content[:3000] if page_content and page_content != 'nan' else "Geen pagina-inhoud beschikbaar."
+    
+    # Exacte match op basis van de originele URL
     top_queries = kw_dict.get(url, [])
     
     kw1 = top_queries[0] if len(top_queries) > 0 else ""
@@ -49,10 +40,10 @@ def verwerk_pagina(row_data, kw_dict, client):
     keywords_context = ", ".join(top_queries) if top_queries else "Geen zoekwoorddata bekend."
     
     prompt = f"""
-    Je bent een ervaren SEO-expert. Optimaliseer de Page Title (meta title) voor de volgende pagina op basis van de data en de pagina-inhoud.
+    Je bent een ervaren SEO-expert. Optimaliseer de Page Title (meta title) voor de volgende pagina op basis van de data and de pagina-inhoud.
     
     BELANGRIJKE CONTEXT:
-    - De NIEUWE merknaam is: {nieuwe_merknaam}.
+    - De NIEUWE merknaam is exact: {nieuwe_merknaam}.
     
     DATA & CONTEXT:
     - URL van de pagina: {url}
@@ -64,16 +55,16 @@ def verwerk_pagina(row_data, kw_dict, client):
     RANDVOORWAARDEN:
     1. De nieuwe titel MOET extreem relevant zijn voor de intentie van de pagina.
     2. Verwerk het belangrijkste zoekwoord zo ver mogelijk vooraan in de titel.
-    3. Eindig de titel ALTIJD met de merknaam, bijvoorbeeld: `| {nieuwe_merknaam}`.
+    3. Eindig de titel ALTIJD met de merknaam, exact als volgt geschreven: `| {nieuwe_merknaam}`.
     4. De TOTALE titel lengte MOET strikt tussen de 40 en 60 karakters lang zijn (absoluut maximaal 60 karakters).
     5. Output ALLEEN de nieuwe titel. Geen inleiding, geen uitleg, geen aanhalingstekens eromheen.
     6. Voorkom overmatig gebruik van hoofdletters. 
-    7. Alleen het eerste woord van de pagina titel en de merknaam mag een hoofdletter bevatten. De rest van de woorden moeten volledig in kleine letters (lowercase), tenzij het een officiële eigennaam betreft.
+    7. Alleen het allereerste woord van de paginatitel mag met een hoofdletter beginnen. Alle tussenliggende woorden moeten volledig in kleine letters (lowercase), tenzij het een officiële eigennaam betreft. Behoud voor de merknaam aan het einde wél de exacte schrijfwijze: {nieuwe_merknaam}.
     """
     
     advies_titel = "Fout bij genereren"
     
-    # Punt 3: Retry mechanisme (maximaal 3 pogingen bij API haperingen of Rate Limits)
+    # Retry mechanisme (maximaal 3 pogingen bij API haperingen of Rate Limits)
     for geprobeerd in range(3):
         try:
             response = client.chat.completions.create(
@@ -86,13 +77,13 @@ def verwerk_pagina(row_data, kw_dict, client):
             )
             advies_titel = response.choices[0].message.content.strip()
             
-            # Punt 4: Output Schoonmaken (Sterretjes, aanhalingstekens en AI-voorvoegsels slopen)
+            # Output Schoonmaken (Sterretjes, aanhalingstekens en AI-voorvoegsels slopen)
             advies_titel = advies_titel.replace('"', '').replace("'", "").replace("**", "").replace("*", "")
             advies_titel = re.sub(r'^(hier is je titel:|nieuwe titel:|titel advies:|advies titel:)\s*', '', advies_titel, flags=re.IGNORECASE)
-            break # Succes! Breek uit de retry-loop
+            break 
         except Exception:
             if geprobeerd < 2:
-                time.sleep(2) # Wacht 2 seconden voor de volgende poging
+                time.sleep(2) 
             else:
                 advies_titel = "Fout bij genereren (API Limiet/Storing)"
         
@@ -105,12 +96,12 @@ if file_titles and file_data:
         st.warning("⚠️ Vul eerst je OpenAI API Key in de sidebar in.")
     else:
         if st.button("🚀 Start Optimalisatie", type="primary"):
-            client = OpenAI(api_key=openai_key)
+            # Suggestie 2: .strip() toegevoegd om eventuele gekopieerde spaties op te vangen
+            client = OpenAI(api_key=openai_key.strip())
             
             with st.status("Data aan het verwerken...", expanded=True) as status:
                 st.write("Bestanden inlezen en structuur valideren...")
                 
-                # Punt 1: Automatische scheidingsteken detectie (sep=None) om Excel-puntkomma fouten te voorkomen
                 try:
                     df_titles = pd.read_csv(file_titles, sep=None, engine='python').fillna('')
                     df_data = pd.read_csv(file_data, sep=None, engine='python').fillna('')
@@ -118,11 +109,9 @@ if file_titles and file_data:
                     st.error(f"Fout bij het inlezen van de CSV-bestanden: {e}")
                     st.stop()
                 
-                # Punt 1: Headers opschonen naar kleine letters (lowercase & stripped)
                 df_titles.columns = df_titles.columns.str.lower().str.strip()
                 df_data.columns = df_data.columns.str.lower().str.strip()
                 
-                # Punt 1: Harde controle op verplichte kolommen
                 verplichte_titels = ['address', 'title 1', 'h1-1', 'page content']
                 verplichte_data = ['page', 'query', 'clicks']
                 
@@ -136,10 +125,33 @@ if file_titles and file_data:
                     st.error(f"❌ Kolomfout in GSC Data CSV. Missende kolom(men): {', '.join(gemiste_data)}")
                     st.stop()
                 
-                st.write("GSC-data verwerken...")
+                # --- AUTOMATISCHE DATA FILTERING ---
+                st.write("Data opschonen en filteren...")
+                
+                # 1. Filter URL's met parameters (?) eruit
+                oude_lengte = len(df_titles)
+                df_titles = df_titles[~df_titles['address'].str.contains(r'\?', na=False)]
+                gefilterde_parameters = oude_lengte - len(df_titles)
+                if gefilterde_parameters > 0:
+                    st.write(f"ℹ️ {gefilterde_parameters} URL's met parameters (`?`) automatisch uitgesloten.")
+                
+                # 2. Filter Non-Indexable pagina's eruit (indien de kolom 'indexability' bestaat)
+                if 'indexability' in df_titles.columns:
+                    lengte_voor_index_filter = len(df_titles)
+                    df_titles = df_titles[df_titles['indexability'].str.lower().str.strip() != 'non-indexable']
+                    gefilterde_indexability = lengte_voor_index_filter - len(df_titles)
+                    if gefilterde_indexability > 0:
+                        st.write(f"ℹ️ {gefilterde_indexability} non-indexable pagina's automatisch uitgesloten.")
+                
+                # Controleer of er na het filteren nog pagina's overblijven
+                if len(df_titles) == 0:
+                    st.error("❌ Geen bruikbare pagina's overgebleven na het filteren van parameters en non-indexable URL's.")
+                    st.stop()
+                
+                st.write("GSC-data koppelen...")
                 df_data['clicks'] = pd.to_numeric(df_data['clicks'], errors='coerce').fillna(0)
                 
-                # Top 3 groeperen op basis van de opgeschoonde kleine-letter-kolommen
+                # Sorteer en groepeer direct op de exacte 'page' kolom
                 df_data_sorted = df_data.sort_values(by=['page', 'clicks'], ascending=[True, False])
                 df_top3 = df_data_sorted.groupby('page').head(3)
                 kw_dict = df_top3.groupby('page')['query'].apply(list).to_dict()
@@ -162,15 +174,12 @@ if file_titles and file_data:
             # --- RESULTAAT TONEN & DOWNLOADEN ---
             st.success("🔥 Klaar! De titels zijn succesvol gegenereerd.")
             
-            # Voeg resultaten toe aan het DataFrame
             df_results = pd.DataFrame(results, columns=["Title advies", "Title Length", "Keyword 1", "Keyword 2", "Keyword 3"])
-            df_final = pd.concat([df_titles, df_results], axis=1)
+            df_final = pd.concat([df_titles.reset_index(drop=True), df_results], axis=1)
             
-            # Toon een preview in de app
             st.subheader("👀 Preview van de resultaten (Eerste 10 rijen)")
             st.dataframe(df_final.head(10), use_container_width=True)
             
-            # Download knop maken
             csv_output = df_final.to_csv(index=False).encode('utf-8')
             st.download_button(
                 label="📥 Download Geoptimaliseerde CSV",
